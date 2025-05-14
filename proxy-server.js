@@ -138,7 +138,33 @@ app.get("/airtable", async (req, res) => {
     res.status(500).json({ error: "airtable proxy failure" });
   }
 });
+app.post("/airtable/swipe", async (req, res) => {
+  const { renterId, listingId, action } = req.body;
+  if (!renterId || !listingId || !action) {
+    return res.status(400).json({ error: "missing fields" });
+  }
 
+  const record = {
+    fields: {
+      "Renter":  [renterId],
+      "Listing": [listingId],
+      "Action":  action, // expects "Like" or "Dislike"
+    },
+  };
+
+  const url = `https://api.airtable.com/v0/${process.env.AIRTABLE_BASE}/Swipes`;
+  const upstream = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.AIRTABLE_PAT}`,
+    },
+    body: JSON.stringify({ records: [record] }),
+  });
+
+  const data = await upstream.json();
+  res.status(upstream.status).json(data);
+});
 // -----------------------------------------------------------------------------
 // Healthcheck
 // -----------------------------------------------------------------------------
